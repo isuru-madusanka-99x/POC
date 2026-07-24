@@ -8,6 +8,11 @@ export interface FormField {
   value: number | null;
   /** Meaningful only for calculated-overridable fields. */
   isOverridden: boolean;
+  /**
+   * Last backend-calculated value before an override.
+   * Used to restore the input immediately when Clear is clicked.
+   */
+  lastCalculatedValue: number | null;
   status: FieldStatus;
   label: string;
   errorMessage: string | null;

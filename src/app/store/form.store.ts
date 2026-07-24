@@ -49,12 +49,17 @@ function labelFor(fieldId: string, kind: string): string {
 
 function mapDtoToField(dto: FormFieldDto): FormField {
   const kind = dto.kind as FieldKind;
+  const value = dto.value ?? null;
+  const isOverridden =
+    kind === 'calculated-overridable' ? Boolean(dto.isOverridden) : false;
   return {
     fieldId: dto.field,
     kind,
-    value: dto.value ?? null,
-    isOverridden:
-      kind === 'calculated-overridable' ? Boolean(dto.isOverridden) : false,
+    value,
+    isOverridden,
+    // When not overridden, the current value is the calculated baseline.
+    lastCalculatedValue:
+      kind === 'calculated-overridable' && !isOverridden ? value : null,
     status: 'idle',
     label: labelFor(dto.field, kind),
     errorMessage: null,
@@ -96,12 +101,22 @@ function applyCalcUpdates(
 
   if (response.value?.field && next[response.value.field]) {
     const patchedId = response.value.field;
+    const existing = next[patchedId];
+    const isClearingPatched = clearedOverrideFieldId === patchedId;
     next = updateFieldEntry(next, patchedId, {
       value: response.value.value,
       status: 'idle',
       errorMessage: null,
-      ...(clearedOverrideFieldId === patchedId
-        ? { isOverridden: false }
+      ...(isClearingPatched
+        ? {
+            isOverridden: false,
+            lastCalculatedValue: response.value.value,
+          }
+        : {}),
+      ...(existing.kind === 'calculated-overridable' &&
+      !existing.isOverridden &&
+      !isClearingPatched
+        ? { lastCalculatedValue: response.value.value }
         : {}),
     });
   }
@@ -113,15 +128,19 @@ function applyCalcUpdates(
     const isClearingThis =
       clearedOverrideFieldId !== null && item.field === clearedOverrideFieldId;
     const field = next[item.field];
+    const isOverridden = isClearingThis
+      ? false
+      : field.kind === 'calculated-overridable'
+        ? field.isOverridden
+        : false;
     next = updateFieldEntry(next, item.field, {
       value: item.value,
       status: 'idle',
       errorMessage: null,
-      isOverridden: isClearingThis
-        ? false
-        : field.kind === 'calculated-overridable'
-          ? field.isOverridden
-          : false,
+      isOverridden,
+      ...(field.kind === 'calculated-overridable' && !isOverridden
+        ? { lastCalculatedValue: item.value }
+        : {}),
     });
   }
 
@@ -197,12 +216,32 @@ export const FormStore = signalStore(
             return;
           }
           const isOverridable = current.kind === 'calculated-overridable';
+          const clearingOverride = isOverridable && value === null;
+
+          if (clearingOverride) {
+            // Restore the pre-override calculated value immediately in the UI.
+            updateState(store, `[Form] clearOverride pending (${fieldId})`, {
+              fields: updateFieldEntry(store.fields(), fieldId, {
+                value: current.lastCalculatedValue,
+                isOverridden: false,
+                status: 'pending',
+                errorMessage: null,
+              }),
+            });
+            return;
+          }
+
           updateState(store, `[Form] updateField pending (${fieldId})`, {
             fields: updateFieldEntry(store.fields(), fieldId, {
               value,
               status: 'pending',
               errorMessage: null,
-              isOverridden: isOverridable ? value !== null : false,
+              isOverridden: isOverridable,
+              // Snapshot calculated baseline the first time the user overrides.
+              lastCalculatedValue:
+                isOverridable && !current.isOverridden
+                  ? current.value
+                  : current.lastCalculatedValue,
             }),
           });
         }),

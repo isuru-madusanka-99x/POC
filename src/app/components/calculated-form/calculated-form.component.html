@@ -55,11 +55,12 @@
             @if (field.kind === 'calculated-overridable' && field.isOverridden) {
               <button
                 type="button"
-                class="btn-reset"
+                class="btn-clear"
                 (click)="clearOverride(field)"
-                title="Clear override and restore backend-calculated value"
+                [disabled]="field.status === 'pending'"
+                title="Clear override and restore the previous calculated value"
               >
-                Clear override
+                Clear
               </button>
             }
           </div>
@@ -70,7 +71,17 @@
 
           @if (field.kind === 'calculated-overridable' && !field.isOverridden) {
             <p class="field__help">
-              Showing backend-calculated value. Type to override, or clear the input to reset.
+              Showing backend-calculated value. Type to override.
+            </p>
+          }
+          @if (field.kind === 'calculated-overridable' && field.isOverridden) {
+            <p class="field__help">
+              Overridden. Click <strong>Clear</strong> to restore
+              {{
+                field.lastCalculatedValue === null
+                  ? 'the calculated value'
+                  : field.lastCalculatedValue
+              }}.
             </p>
           }
         </div>
@@ -85,7 +96,7 @@
       <li><strong>calculated</strong> — read-only; value comes only from response <code>calc</code>.</li>
       <li>
         <strong>calculated-overridable</strong> — starts as calculated; user may override;
-        empty / Clear override sends <code>null</code> and restores the calc value.
+        <strong>Clear</strong> restores the previous calculated value (PATCH <code>null</code>).
       </li>
     </ul>
   </aside>
