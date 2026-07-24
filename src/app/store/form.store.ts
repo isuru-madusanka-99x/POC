@@ -1,7 +1,7 @@
 import { computed, effect, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { updateState } from '@angular-architects/ngrx-toolkit';
 import {
-  patchState,
   signalStore,
   withComputed,
   withHooks,
@@ -18,6 +18,7 @@ import {
   switchMap,
   tap,
 } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {
   FieldKind,
   FieldUpdateResponse,
@@ -146,6 +147,7 @@ function errorMessage(err: unknown, fallback: string): string {
 
 export const FormStore = signalStore(
   { providedIn: 'root' },
+  environment.storeWithDevTools('form'),
   withState<FormStoreState>({
     fields: {},
     loadStatus: 'idle',
@@ -160,7 +162,7 @@ export const FormStore = signalStore(
     const loadForm = rxMethod<void>(
       pipe(
         tap(() =>
-          patchState(store, {
+          updateState(store, '[Form] loadForm pending', {
             loadStatus: 'loading',
             loadError: null,
           })
@@ -169,14 +171,14 @@ export const FormStore = signalStore(
           api.getForm().pipe(
             tapResponse({
               next: (response) => {
-                patchState(store, {
+                updateState(store, '[Form] loadForm success', {
                   fields: mapFormState(response),
                   loadStatus: 'loaded',
                   loadError: null,
                 });
               },
               error: (err: unknown) => {
-                patchState(store, {
+                updateState(store, '[Form] loadForm error', {
                   loadStatus: 'error',
                   loadError: errorMessage(err, 'Failed to load form'),
                 });
@@ -195,7 +197,7 @@ export const FormStore = signalStore(
             return;
           }
           const isOverridable = current.kind === 'calculated-overridable';
-          patchState(store, {
+          updateState(store, `[Form] updateField pending (${fieldId})`, {
             fields: updateFieldEntry(store.fields(), fieldId, {
               value,
               status: 'pending',
@@ -213,24 +215,32 @@ export const FormStore = signalStore(
               return api.updateField({ field: fieldId, value }).pipe(
                 tapResponse({
                   next: (response) => {
-                    patchState(store, {
-                      fields: applyCalcUpdates(
-                        store.fields(),
-                        response,
-                        clearingOverride ? fieldId : null
-                      ),
-                    });
+                    updateState(
+                      store,
+                      `[Form] updateField success (${fieldId})`,
+                      {
+                        fields: applyCalcUpdates(
+                          store.fields(),
+                          response,
+                          clearingOverride ? fieldId : null
+                        ),
+                      }
+                    );
                   },
                   error: (err: unknown) => {
-                    patchState(store, {
-                      fields: updateFieldEntry(store.fields(), fieldId, {
-                        status: 'error',
-                        errorMessage: errorMessage(
-                          err,
-                          'Failed to update field'
-                        ),
-                      }),
-                    });
+                    updateState(
+                      store,
+                      `[Form] updateField error (${fieldId})`,
+                      {
+                        fields: updateFieldEntry(store.fields(), fieldId, {
+                          status: 'error',
+                          errorMessage: errorMessage(
+                            err,
+                            'Failed to update field'
+                          ),
+                        }),
+                      }
+                    );
                   },
                 })
               );

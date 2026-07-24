@@ -19,7 +19,17 @@ npm install
 npm start
 ```
 
-Open http://localhost:4200/. Use the browser console to watch `[FormStore] state` logs on every transition.
+Open http://localhost:4200/.
+
+Ensure the .NET API is running and reachable at the URL in `src/environments/environment.development.ts`.
+
+### Redux DevTools (Chrome)
+
+1. Install the [Redux DevTools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) Chrome extension.
+2. Open the app, then open Chrome DevTools → **Redux** / **NgRx Signal Store** tab (select that instance to activate it).
+3. Inspect the `form` store. Named actions come from `updateState()` (e.g. `[Form] updateField success (userInput1)`).
+
+DevTools is enabled in development via `@angular-architects/ngrx-toolkit` `withDevtools`; production builds use `withDevToolsStub`.
 
 ## Where things live
 
@@ -28,9 +38,12 @@ Open http://localhost:4200/. Use the browser console to watch `[FormStore] state
 | Signal store | `src/app/store/form.store.ts` |
 | Field model / API contract | `src/app/models/form-field.model.ts` |
 | HTTP API client | `src/app/services/form-api.service.ts` |
-| Mock backend interceptor | `src/app/interceptors/mock-form-api.interceptor.ts` |
 | Form UI | `src/app/components/calculated-form/` |
 | Environments | `src/environments/environment*.ts` |
+
+## Initialization
+
+On store init, the app calls **`GET /api/form`** and populates every field (`value`, `kind`, `isOverridden`) from the response. There are no hardcoded field values in the frontend.
 
 ## Debounced update flow
 
@@ -43,6 +56,21 @@ Open http://localhost:4200/. Use the browser console to watch `[FormStore] state
 7. On error: that field gets `status: 'error'` and an inline message; the form stays usable.
 
 ## API contract
+
+```http
+GET /api/form
+```
+
+```json
+{
+  "fields": [
+    { "field": "userInput1", "kind": "normal", "value": 0 },
+    { "field": "userInput2", "kind": "normal", "value": 0 },
+    { "field": "calInput1", "kind": "calculated", "value": 0 },
+    { "field": "calInput2", "kind": "calculated-overridable", "value": 5, "isOverridden": false }
+  ]
+}
+```
 
 ```http
 PATCH /api/form/fields
@@ -63,34 +91,18 @@ Content-Type: application/json
 
 Send `"value": null` to clear an override on a calculated-overridable field.
 
-## Pointing at a real .NET backend
+## Backend URL
 
-1. Set `apiBaseUrl` to your API origin (no trailing slash), e.g. `https://localhost:5001`.
-2. Set `useMockApi: false` so the mock interceptor is not registered.
+Set `apiBaseUrl` (no trailing slash) in:
 
-**Development** (`ng serve` / `environment.development.ts`):
+- `src/environments/environment.development.ts` — used by `ng serve`
+- `src/environments/environment.ts` — used by production builds
 
-```ts
-export const environment = {
-  production: false,
-  apiBaseUrl: 'https://localhost:5001',
-  useMockApi: false,
-};
-```
-
-**Production** (`environment.ts`): same shape — update `apiBaseUrl` and keep `useMockApi: false`.
-
-No other frontend changes are required when the backend matches the contract above.
-
-### Mock formulas (dev interceptor only)
-
-Used only while `useMockApi: true`:
-
-- `calInput1 = userInput1 * 2`
-- `calInput2 = userInput2 * 3` (unless overridden)
+Current default: `https://localhost:7161`
 
 ## Stack
 
 - Angular 19 (standalone components)
 - `@ngrx/signals` (`signalStore`, `withState`, `withMethods`, `rxMethod`)
-- Angular `HttpClient` + functional interceptor for the mock API
+- `@angular-architects/ngrx-toolkit` (`withDevtools`, `updateState`) for Chrome Redux DevTools
+- Angular `HttpClient` calling the real form API
