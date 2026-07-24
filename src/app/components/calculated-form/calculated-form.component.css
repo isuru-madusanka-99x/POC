@@ -1,0 +1,185 @@
+.poc {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #1a1a1a;
+}
+
+.poc__header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+
+.poc__header p {
+  margin: 0 0 0.5rem;
+  line-height: 1.45;
+  color: #444;
+}
+
+.poc__hint {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.poc__hint code {
+  font-size: 0.8em;
+  background: #f0f0f0;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.field__label-row label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.field__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.25rem;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+}
+
+.badge--override {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+.pending {
+  display: inline-block;
+  color: #0d6efd;
+  animation: pulse 0.8s ease-in-out infinite;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.field__control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field__control input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 1rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.field--readonly .field__control input,
+.field__control input:disabled {
+  background: #e9ecef;
+  color: #495057;
+  cursor: not-allowed;
+  border-color: #ced4da;
+}
+
+.field--overridden .field__control input {
+  border-color: #c9a227;
+  background: #fffbeb;
+}
+
+.field--pending .field__control input {
+  border-color: #0d6efd;
+}
+
+.field--error .field__control input {
+  border-color: #dc3545;
+}
+
+.btn-reset {
+  flex-shrink: 0;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+  border: 1px solid #adb5bd;
+  border-radius: 4px;
+  background: #f8f9fa;
+  cursor: pointer;
+}
+
+.btn-reset:hover {
+  background: #e9ecef;
+}
+
+.field__error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #dc3545;
+}
+
+.field__help {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.legend {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.legend h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.legend ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #444;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.legend code {
+  font-size: 0.85em;
+  background: #f0f0f0;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+}

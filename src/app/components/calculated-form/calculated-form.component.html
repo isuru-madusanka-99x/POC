@@ -1,0 +1,81 @@
+<section class="poc">
+  <header class="poc__header">
+    <h1>Calculated Fields POC</h1>
+    <p>
+      Backend-driven form values. Edit a normal or overridable field — dependent
+      calculated fields update from the PATCH response only (no client-side formulas).
+    </p>
+    <p class="poc__hint">
+      Open the browser console to watch <code>[FormStore] state</code> transitions.
+    </p>
+  </header>
+
+  <form class="form" (submit)="$event.preventDefault()">
+    @for (field of store.fieldList(); track field.fieldId) {
+      <div
+        class="field"
+        [class.field--readonly]="field.kind === 'calculated'"
+        [class.field--overridden]="field.isOverridden"
+        [class.field--pending]="field.status === 'pending'"
+        [class.field--error]="field.status === 'error'"
+      >
+        <div class="field__label-row">
+          <label [attr.for]="field.fieldId">{{ field.label }}</label>
+          <span class="field__meta">
+            @if (field.isOverridden) {
+              <span class="badge badge--override">overridden</span>
+            }
+            @if (field.status === 'pending') {
+              <span class="pending" aria-label="Saving" title="Saving…">●</span>
+            }
+          </span>
+        </div>
+
+        <div class="field__control">
+          <input
+            [id]="field.fieldId"
+            type="number"
+            [value]="displayValue(field)"
+            [readonly]="isReadonly(field)"
+            [disabled]="isReadonly(field)"
+            (input)="onFieldInput(field, $event)"
+            autocomplete="off"
+          />
+
+          @if (field.kind === 'calculated-overridable' && field.isOverridden) {
+            <button
+              type="button"
+              class="btn-reset"
+              (click)="clearOverride(field)"
+              title="Clear override and restore backend-calculated value"
+            >
+              Clear override
+            </button>
+          }
+        </div>
+
+        @if (field.status === 'error' && field.errorMessage) {
+          <p class="field__error" role="alert">{{ field.errorMessage }}</p>
+        }
+
+        @if (field.kind === 'calculated-overridable' && !field.isOverridden) {
+          <p class="field__help">
+            Showing backend-calculated value. Type to override, or clear the input to reset.
+          </p>
+        }
+      </div>
+    }
+  </form>
+
+  <aside class="legend">
+    <h2>Field kinds</h2>
+    <ul>
+      <li><strong>normal</strong> — editable; every change PATCHes the backend.</li>
+      <li><strong>calculated</strong> — read-only; value comes only from response <code>calc</code>.</li>
+      <li>
+        <strong>calculated-overridable</strong> — starts as calculated; user may override;
+        empty / Clear override sends <code>null</code> and restores the calc value.
+      </li>
+    </ul>
+  </aside>
+</section>
