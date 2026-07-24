@@ -1,5 +1,6 @@
 export type FieldKind = 'normal' | 'calculated' | 'calculated-overridable';
 export type FieldStatus = 'idle' | 'pending' | 'error';
+export type FormLoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface FormField {
   fieldId: string;
@@ -14,6 +15,19 @@ export interface FormField {
 
 export type FormFieldsState = Record<string, FormField>;
 
+/** GET /api/form — single field (FormFieldDto). */
+export interface FormFieldDto {
+  field: string;
+  kind: FieldKind | string;
+  value: number | null;
+  isOverridden?: boolean | null;
+}
+
+/** GET /api/form — FormStateResponse. */
+export interface FormStateResponse {
+  fields: FormFieldDto[];
+}
+
 export interface FieldUpdateRequest {
   field: string;
   value: number | null;
@@ -25,10 +39,14 @@ export interface FieldValueDto {
 }
 
 /**
- * Contract shared with the .NET backend.
+ * PATCH /api/form/fields response.
  * Frontend never computes calc values — it only applies what the API returns.
  */
 export interface FieldUpdateResponse {
   value: FieldValueDto;
   calc: FieldValueDto[];
+}
+
+export interface ErrorResponse {
+  error: string;
 }

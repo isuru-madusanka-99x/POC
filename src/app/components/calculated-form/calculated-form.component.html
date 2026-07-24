@@ -10,62 +10,73 @@
     </p>
   </header>
 
-  <form class="form" (submit)="$event.preventDefault()">
-    @for (field of store.fieldList(); track field.fieldId) {
-      <div
-        class="field"
-        [class.field--readonly]="field.kind === 'calculated'"
-        [class.field--overridden]="field.isOverridden"
-        [class.field--pending]="field.status === 'pending'"
-        [class.field--error]="field.status === 'error'"
-      >
-        <div class="field__label-row">
-          <label [attr.for]="field.fieldId">{{ field.label }}</label>
-          <span class="field__meta">
-            @if (field.isOverridden) {
-              <span class="badge badge--override">overridden</span>
-            }
-            @if (field.status === 'pending') {
-              <span class="pending" aria-label="Saving" title="Saving…">●</span>
-            }
-          </span>
-        </div>
+  @if (store.isLoading()) {
+    <p class="poc__status" aria-live="polite">Loading form from backend…</p>
+  } @else if (store.loadStatus() === 'error') {
+    <div class="poc__status poc__status--error" role="alert">
+      <p>{{ store.loadError() }}</p>
+      <button type="button" class="btn-reset" (click)="store.loadForm()">
+        Retry
+      </button>
+    </div>
+  } @else {
+    <form class="form" (submit)="$event.preventDefault()">
+      @for (field of store.fieldList(); track field.fieldId) {
+        <div
+          class="field"
+          [class.field--readonly]="field.kind === 'calculated'"
+          [class.field--overridden]="field.isOverridden"
+          [class.field--pending]="field.status === 'pending'"
+          [class.field--error]="field.status === 'error'"
+        >
+          <div class="field__label-row">
+            <label [attr.for]="field.fieldId">{{ field.label }}</label>
+            <span class="field__meta">
+              @if (field.isOverridden) {
+                <span class="badge badge--override">overridden</span>
+              }
+              @if (field.status === 'pending') {
+                <span class="pending" aria-label="Saving" title="Saving…">●</span>
+              }
+            </span>
+          </div>
 
-        <div class="field__control">
-          <input
-            [id]="field.fieldId"
-            type="number"
-            [value]="displayValue(field)"
-            [readonly]="isReadonly(field)"
-            [disabled]="isReadonly(field)"
-            (input)="onFieldInput(field, $event)"
-            autocomplete="off"
-          />
+          <div class="field__control">
+            <input
+              [id]="field.fieldId"
+              type="number"
+              [value]="displayValue(field)"
+              [readonly]="isReadonly(field)"
+              [disabled]="isReadonly(field)"
+              (input)="onFieldInput(field, $event)"
+              autocomplete="off"
+            />
 
-          @if (field.kind === 'calculated-overridable' && field.isOverridden) {
-            <button
-              type="button"
-              class="btn-reset"
-              (click)="clearOverride(field)"
-              title="Clear override and restore backend-calculated value"
-            >
-              Clear override
-            </button>
+            @if (field.kind === 'calculated-overridable' && field.isOverridden) {
+              <button
+                type="button"
+                class="btn-reset"
+                (click)="clearOverride(field)"
+                title="Clear override and restore backend-calculated value"
+              >
+                Clear override
+              </button>
+            }
+          </div>
+
+          @if (field.status === 'error' && field.errorMessage) {
+            <p class="field__error" role="alert">{{ field.errorMessage }}</p>
+          }
+
+          @if (field.kind === 'calculated-overridable' && !field.isOverridden) {
+            <p class="field__help">
+              Showing backend-calculated value. Type to override, or clear the input to reset.
+            </p>
           }
         </div>
-
-        @if (field.status === 'error' && field.errorMessage) {
-          <p class="field__error" role="alert">{{ field.errorMessage }}</p>
-        }
-
-        @if (field.kind === 'calculated-overridable' && !field.isOverridden) {
-          <p class="field__help">
-            Showing backend-calculated value. Type to override, or clear the input to reset.
-          </p>
-        }
-      </div>
-    }
-  </form>
+      }
+    </form>
+  }
 
   <aside class="legend">
     <h2>Field kinds</h2>
