@@ -27,7 +27,7 @@ Ensure the .NET API is running and reachable at the URL in `src/environments/env
 
 1. Install the [Redux DevTools](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd) Chrome extension.
 2. Open the app, then open Chrome DevTools → **Redux** / **NgRx Signal Store** tab (select that instance to activate it).
-3. Inspect the `form` store. Named actions come from `updateState()` (e.g. `[Form] updateField success (userInput1)`).
+3. Inspect the `app` store. Named actions come from `updateState()` (e.g. `[App] updateField success (userInput1)`).
 
 DevTools is enabled in development via `@angular-architects/ngrx-toolkit` `withDevtools`; production builds use `withDevToolsStub`.
 
@@ -35,10 +35,13 @@ DevTools is enabled in development via `@angular-architects/ngrx-toolkit` `withD
 
 | Piece | Path |
 |-------|------|
-| Signal store | `src/app/store/form.store.ts` |
+| Signal store (form + table) | `src/app/store/app.store.ts` |
 | Field model / API contract | `src/app/models/form-field.model.ts` |
-| HTTP API client | `src/app/services/form-api.service.ts` |
+| Table row model / API contract | `src/app/models/table-row.model.ts` |
+| HTTP API client | `src/app/services/api.service.ts` |
+| Calc interceptor | `src/app/interceptors/calc-fields.interceptor.ts` |
 | Form UI | `src/app/components/calculated-form/` |
+| Table UI | `src/app/components/calculated-table/` |
 | Environments | `src/environments/environment*.ts` |
 
 ## Initialization
@@ -48,11 +51,11 @@ On store init, the app calls **`GET /api/form`** and populates every field (`val
 ## Debounced update flow
 
 1. User edits a **normal** or **calculated-overridable** field.
-2. `FormStore.updateField({ fieldId, value })` runs (NgRx Signals `rxMethod`).
+2. `AppStore.updateField({ fieldId, value })` runs (NgRx Signals `rxMethod`).
 3. **Optimistic update**: local `value` and `status: 'pending'` (and `isOverridden` for overridable fields).
 4. Per-`fieldId` **debounce (400ms)** via `groupBy` → `debounceTime` → **`switchMap`** (cancels in-flight PATCH for that same field).
 5. `PATCH {apiBaseUrl}/api/form/fields` with `{ field, value }`.
-6. On success: apply response `value` and every entry in `calc` into the store (`status: 'idle'`). Dependent calculated fields update without the user touching them.
+6. On success: the store applies response `value`; `calcFieldsInterceptor` applies `calc` via `AppStore.applyCalc`.
 7. On error: that field gets `status: 'error'` and an inline message; the form stays usable.
 
 ## API contract
