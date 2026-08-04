@@ -21,7 +21,7 @@ import {
 import { environment } from '../../environments/environment';
 import {
   FieldKind,
-  FieldUpdateResponse,
+  FieldValueDto,
   FormField,
   FormFieldDto,
   FormFieldsState,
@@ -92,39 +92,57 @@ function updateFieldEntry(
   };
 }
 
-function applyCalcUpdates(
+/**
+ * Applies only the field the user just edited (`response.value`).
+ * Calculated dependents come from the calc-fields interceptor instead.
+ */
+function applyPatchedValue(
   fields: FormFieldsState,
-  response: FieldUpdateResponse,
+  patched: FieldValueDto | undefined,
+  clearedOverrideFieldId: string | null
+): FormFieldsState {
+  if (!patched?.field || !fields[patched.field]) {
+    return fields;
+  }
+
+  const patchedId = patched.field;
+  const existing = fields[patchedId];
+  const isClearingPatched = clearedOverrideFieldId === patchedId;
+
+  return updateFieldEntry(fields, patchedId, {
+    value: patched.value,
+    status: 'idle',
+    errorMessage: null,
+    ...(isClearingPatched
+      ? {
+          isOverridden: false,
+          lastCalculatedValue: patched.value,
+        }
+      : {}),
+    ...(existing.kind === 'calculated-overridable' &&
+    !existing.isOverridden &&
+    !isClearingPatched
+      ? { lastCalculatedValue: patched.value }
+      : {}),
+  });
+}
+
+/**
+ * Merges backend `calc` entries into local field state.
+ * Used by the calc-fields interceptor for every response that includes calc.
+ */
+function mergeCalcIntoFields(
+  fields: FormFieldsState,
+  calc: FieldValueDto[],
   clearedOverrideFieldId: string | null
 ): FormFieldsState {
   let next = { ...fields };
 
-  if (response.value?.field && next[response.value.field]) {
-    const patchedId = response.value.field;
-    const existing = next[patchedId];
-    const isClearingPatched = clearedOverrideFieldId === patchedId;
-    next = updateFieldEntry(next, patchedId, {
-      value: response.value.value,
-      status: 'idle',
-      errorMessage: null,
-      ...(isClearingPatched
-        ? {
-            isOverridden: false,
-            lastCalculatedValue: response.value.value,
-          }
-        : {}),
-      ...(existing.kind === 'calculated-overridable' &&
-      !existing.isOverridden &&
-      !isClearingPatched
-        ? { lastCalculatedValue: response.value.value }
-        : {}),
-    });
-  }
-
-  for (const item of response.calc ?? []) {
+  for (const item of calc) {
     if (!next[item.field]) {
       continue;
     }
+
     const isClearingThis =
       clearedOverrideFieldId !== null && item.field === clearedOverrideFieldId;
     const field = next[item.field];
@@ -133,6 +151,7 @@ function applyCalcUpdates(
       : field.kind === 'calculated-overridable'
         ? field.isOverridden
         : false;
+
     next = updateFieldEntry(next, item.field, {
       value: item.value,
       status: 'idle',
@@ -254,13 +273,15 @@ export const FormStore = signalStore(
               return api.updateField({ field: fieldId, value }).pipe(
                 tapResponse({
                   next: (response) => {
+                    // Only the edited field is applied here.
+                    // Dependent calc values are applied by calcFieldsInterceptor.
                     updateState(
                       store,
                       `[Form] updateField success (${fieldId})`,
                       {
-                        fields: applyCalcUpdates(
+                        fields: applyPatchedValue(
                           store.fields(),
-                          response,
+                          response.value,
                           clearingOverride ? fieldId : null
                         ),
                       }
@@ -289,9 +310,31 @@ export const FormStore = signalStore(
       )
     );
 
+    /**
+     * Called by the calc-fields interceptor when a response includes `calc`.
+     * Keeps calculated-field sync in one place for the whole app.
+     */
+    const applyCalcFields = (
+      calc: FieldValueDto[],
+      clearedOverrideFieldId: string | null = null
+    ): void => {
+      if (!calc?.length) {
+        return;
+      }
+
+      updateState(store, '[Form] applyCalcFields', {
+        fields: mergeCalcIntoFields(
+          store.fields(),
+          calc,
+          clearedOverrideFieldId
+        ),
+      });
+    };
+
     return {
       loadForm,
       updateField,
+      applyCalcFields,
       /** Clears an override by PATCHing null; backend returns the recalculated value. */
       clearOverride(fieldId: string): void {
         const field = store.fields()[fieldId];

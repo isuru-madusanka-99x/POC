@@ -46,6 +46,8 @@ export interface FieldValueDto {
 /**
  * PATCH /api/form/fields response.
  * Frontend never computes calc values — it only applies what the API returns.
+ * `value` is applied by the store method that made the request;
+ * `calc` is applied app-wide by calcFieldsInterceptor.
  */
 export interface FieldUpdateResponse {
   value: FieldValueDto;
