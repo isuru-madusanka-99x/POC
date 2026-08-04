@@ -6,15 +6,15 @@
       calculated fields update from the PATCH response only (no client-side formulas).
     </p>
     <p class="poc__hint">
-      Open the browser console to watch <code>[FormStore] state</code> transitions.
+      Open the browser console to watch <code>[AppStore] state</code> transitions.
     </p>
   </header>
 
-  @if (store.isLoading()) {
+  @if (store.isFormLoading()) {
     <p class="poc__status" aria-live="polite">Loading form from backend…</p>
-  } @else if (store.loadStatus() === 'error') {
+  } @else if (store.formLoadStatus() === 'error') {
     <div class="poc__status poc__status--error" role="alert">
-      <p>{{ store.loadError() }}</p>
+      <p>{{ store.formLoadError() }}</p>
       <button type="button" class="btn-reset" (click)="store.loadForm()">
         Retry
       </button>

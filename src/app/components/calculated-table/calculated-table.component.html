@@ -1,0 +1,99 @@
+<section class="table-poc">
+  <header class="table-poc__header">
+    <h2>Calculated Fields — Table (array PUT)</h2>
+    <p>
+      Edit a cell in the value array. The backend responds with confirmed
+      <code>value</code> rows and a row-shaped <code>calc</code> array. The
+      interceptor applies <code>calc</code>; the store only applies
+      <code>value</code>.
+    </p>
+    <p class="table-poc__hint">
+      Watch the console for <code>[AppStore] state</code> transitions.
+    </p>
+  </header>
+
+  @if (store.isTableLoading()) {
+    <p class="table-poc__status" aria-live="polite">Loading table from backend…</p>
+  } @else if (store.tableLoadStatus() === 'error') {
+    <div class="table-poc__status table-poc__status--error" role="alert">
+      <p>{{ store.tableLoadError() }}</p>
+      <button type="button" class="btn-reset" (click)="store.loadTable()">
+        Retry
+      </button>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Id</th>
+            <th scope="col">
+              userInput1
+              <span class="th-sub">editable</span>
+            </th>
+            <th scope="col">
+              calInput1
+              <span class="th-sub">from calc</span>
+            </th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of store.rowList(); track row.id) {
+            <tr
+              [class.row--pending]="row.status === 'pending'"
+              [class.row--error]="row.status === 'error'"
+            >
+              <td class="cell-id">{{ row.id }}</td>
+              <td>
+                <input
+                  type="number"
+                  [attr.aria-label]="'userInput1 for row ' + row.id"
+                  [value]="displayValue(row.userInput1)"
+                  (input)="onUserInput(row, $event)"
+                  autocomplete="off"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  [attr.aria-label]="'calInput1 for row ' + row.id"
+                  [value]="displayValue(row.calInput1)"
+                  readonly
+                  disabled
+                />
+              </td>
+              <td class="cell-status">
+                @if (row.status === 'pending') {
+                  <span class="pending" title="Saving…">●</span>
+                } @else if (row.status === 'error') {
+                  <span class="error-text" role="alert">{{ row.errorMessage }}</span>
+                } @else {
+                  <span class="idle-text">idle</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <aside class="legend">
+    <h3>Array response shape</h3>
+    <pre class="sample">value: [ {{ '{' }} id, userInput1 {{ '}' }}, … ]
+calc:  [ {{ '{' }} id, calInput1 {{ '}' }}, … ]</pre>
+    <ul>
+      <li>
+        <strong>PUT /api/table/rows</strong> sends the full editable value array.
+      </li>
+      <li>
+        <strong>value</strong> is merged by the table store (user inputs only).
+      </li>
+      <li>
+        <strong>calc</strong> is merged by <code>calcFieldsInterceptor</code> into
+        matching rows by <code>id</code>.
+      </li>
+    </ul>
+  </aside>
+</section>
