@@ -1,12 +1,12 @@
 import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject, Injector } from '@angular/core';
 import { tap } from 'rxjs';
-import { FieldValueDto } from '../models/form-field.model';
-import { FormStore } from '../store/form.store';
+import { AppStore } from '../store/app.store';
 
 /**
- * Shape we look for on any HTTP response body.
- * Example:
+ * Two calc shapes are supported on any response body:
+ *
+ * Field-level (form PATCH):
  * {
  *   value: { field: 'userInput1', value: 10 },
  *   calc: [
@@ -14,9 +14,21 @@ import { FormStore } from '../store/form.store';
  *     { field: 'calInput2', value: 30 }
  *   ]
  * }
+ *
+ * Row-level (table PUT array):
+ * {
+ *   value: [
+ *     { id: 1, userInput1: 10 },
+ *     { id: 2, userInput1: 20 }
+ *   ],
+ *   calc: [
+ *     { id: 1, calInput1: 20 },
+ *     { id: 2, calInput1: 20 }
+ *   ]
+ * }
  */
 type ResponseWithCalc = {
-  calc: FieldValueDto[];
+  calc: unknown[];
 };
 
 type FieldPatchBody = {
@@ -34,7 +46,7 @@ function isResponseWithCalc(body: unknown): body is ResponseWithCalc {
 
 /**
  * Reads a PATCH body to see if the user is clearing an override (sending null).
- * That field must accept the next calculated value from `calc`.
+ * That field must accept the next calculated value from field-level `calc`.
  */
 function clearedOverrideFieldIdFrom(
   method: string,
@@ -56,12 +68,11 @@ function clearedOverrideFieldIdFrom(
  * Application-wide middleware for calculated fields.
  *
  * Whenever any API response includes a `calc` array, this interceptor
- * writes those values into the form store. Individual store methods
- * (e.g. updateField) do not need to apply calc results themselves.
+ * hands it to AppStore.applyCalc — the store decides field vs row shape.
  */
 export const calcFieldsInterceptor: HttpInterceptorFn = (req, next) => {
   // Resolve the store lazily so we avoid a circular DI chain:
-  // FormStore → FormApiService → HttpClient → this interceptor → FormStore
+  // AppStore → ApiService → HttpClient → this interceptor → AppStore
   const injector = inject(Injector);
 
   return next(req).pipe(
@@ -80,9 +91,7 @@ export const calcFieldsInterceptor: HttpInterceptorFn = (req, next) => {
         req.body
       );
 
-      injector
-        .get(FormStore)
-        .applyCalcFields(calc, clearedOverrideFieldId);
+      injector.get(AppStore).applyCalc(calc, clearedOverrideFieldId);
     })
   );
 };

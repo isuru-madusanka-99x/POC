@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { FormStore } from '../../store/form.store';
+import { AppStore } from '../../store/app.store';
 import { FormField } from '../../models/form-field.model';
 
 @Component({
@@ -9,7 +9,7 @@ import { FormField } from '../../models/form-field.model';
   styleUrl: './calculated-form.component.css',
 })
 export class CalculatedFormComponent {
-  readonly store = inject(FormStore);
+  readonly store = inject(AppStore);
 
   onFieldInput(field: FormField, event: Event): void {
     if (field.kind === 'calculated') {

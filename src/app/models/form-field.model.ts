@@ -44,10 +44,13 @@ export interface FieldValueDto {
 }
 
 /**
- * PATCH /api/form/fields response.
+ * PATCH /api/form/fields response (field-level shape).
  * Frontend never computes calc values — it only applies what the API returns.
  * `value` is applied by the store method that made the request;
  * `calc` is applied app-wide by calcFieldsInterceptor.
+ *
+ * For the table PUT array shape ({ id, userInput1 } / { id, calInput1 }),
+ * see TableRowsUpdateResponse in table-row.model.ts.
  */
 export interface FieldUpdateResponse {
   value: FieldValueDto;
